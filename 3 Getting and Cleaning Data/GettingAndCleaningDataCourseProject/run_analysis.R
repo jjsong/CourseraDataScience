@@ -87,6 +87,6 @@ DF2Mean <- aggregate(.~ activity_labels + subject, DF2, FUN = mean)
 DF2Mean[1:50, 1:5]
 dim(DF2Mean)
 write.csv(DF2Mean, file="./tidyData.csv")
-
+write.table(DF2Mean, file="./tidyData.txt", sep=";")
 
 
