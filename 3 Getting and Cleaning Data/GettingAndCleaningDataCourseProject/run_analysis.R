@@ -30,15 +30,12 @@ dim(YTrain)
 #X: Training set.
 test=cbind(YTest, SubTest, XTest)
 dim(test)
-test[1:10, 1:10]
 
 train=cbind(YTrain, SubTrain, XTrain )
 dim(train)
-train[1:10, 1:10]
 
 DF <- rbind(test, train)
 dim(DF)
-DF[10200:10205, 1:3]
 
 
 
@@ -47,14 +44,12 @@ DF[10200:10205, 1:3]
 features <- read.table("./getdata-projectfiles-UCI HAR Dataset/UCI HAR Dataset/features.txt")
 dim(features)
 head(features)
-features[1:15,]
 tail(features)
-features[550:561,]
 names(features)
 
-### make and insert colomn name 
-DF[1:10, 1:5]
+### making and inserting colomn name 
 colnames(DF) <- c("activity_labels","subject", as.character(features[,2])) 
+#checking
 DF[1:10, 1:5]
 
 ### subsetting columns inclduing - activity_labels, subject, mean(), std()  
@@ -63,6 +58,7 @@ columnNew
 #DF2 : new data set
 DF2 <- DF[,columnNew] 
 dim(DF2)
+#checking
 DF2[1:5, 1:5]
 
 
@@ -74,6 +70,7 @@ DF2[1:5, 1:5]
 activity <- read.table("getdata-projectfiles-UCI HAR Dataset/UCI HAR Dataset/activity_labels.txt")
 activity
 DF2$activity_labels <- activity$V2[match(DF2$activity_labels, activity$V1)]
+#checking
 DF2[1:5, 1:5]
 
 
@@ -86,6 +83,7 @@ DF2[1:5, 1:5]
 #####    each variable for each activity and each subject. 
 ### make tidy data and save it
 DF2Mean <- aggregate(.~ activity_labels + subject, DF2, FUN = mean)
+#checking
 DF2Mean[1:50, 1:5]
 dim(DF2Mean)
 write.csv(DF2Mean, file="./tidyData.csv")
