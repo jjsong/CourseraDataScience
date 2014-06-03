@@ -1,32 +1,38 @@
-# Plot3
+##### Plot3
 
 # style(date, time) arranged
-Sys.setlocale("LC_TIME", "en_US.UTF-8")
+Sys.setlocale("LC_TIME","C")
 
-# Read data 
+# reading data 
 houseData <- read.table('./data/household_power_consumption.txt',
                         sep=';', header=T, 
                         colClasses = c('character', 'character', 'numeric',
                                        'numeric', 'numeric', 'numeric', 
                                        'numeric', 'numeric', 'numeric'),
                         na.strings='?')
+# checking 
+dim(houseData)
+head(houseData)
 
-
-# reading and setting Date 
+# reading and setting date 
 houseData$DateTime <- strptime(paste(houseData$Date, houseData$Time),
                                "%d/%m/%Y %H:%M:%S")
+
+# checking
+head(houseData)
 
 # subsetting the condition (2-day period)
 houseData <- subset(houseData, as.Date(DateTime) >= as.Date("2007/02/01") & 
                             as.Date(DateTime) <= as.Date("2007/02/02"))
+
+# checking
+head(houseData)
 
 
 
 
 # open PNG file with 480x480
 png("plot3.png", height=480, width=480)
-
-
 
 plot(houseData$DateTime, houseData$Sub_metering_1, 
      pch=NA, xlab="", ylab="Energy sub metering")
@@ -39,4 +45,5 @@ legend("topright", c("Sub_metering_1", "Sub_metering_2", "Sub_metering_3"),
 # close PNG file
 dev.off()
 
-
+# date, time re arranged
+Sys.setlocale("LC_TIME")
