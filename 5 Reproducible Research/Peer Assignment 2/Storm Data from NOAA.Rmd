@@ -1,0 +1,156 @@
+---
+output: html_document
+---
+Storms and other severe weather events impact on both public health and economic problems for communities and municipalities in USA.
+========================================================
+  
+## Synopsis
+In this report we aim to describe what event type of weather impact population health and economic consequences in the Unitied States between the year 1950 and 2011. Our overall hypothesis is that different event types of weather will make big impact on populatio health and economic dmage. To investigate this hypothesis, we obtained storm dataset from US National Oceanic and Atmosphereic Administrations in US. From these data we analyzed, we found that tornado have the greatest economic consequences in USA, and multiple type of weather have affected population health since the mid-1980s. 
+
+## Data processing
+### Loading the Raw Data
+```{r loading data}
+### dowonloading file
+fileUrl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+if(!file.exists("./data")){dir.create("./data")}
+bzipFile <- "./data/repdata-data-StormData.csv.bz2"    #name bz file
+if (!file.exists(bzipFile)) {
+        download.file(fileUrl, destfile = bzipFile, method = "curl")
+}
+
+### read raw source file 
+rawSD <- read.csv(bzfile(bzipFile), na.strings = "", stringsAsFactors = FALSE, comment.char = "#")
+```
+
+### check the data
+```{r check}
+str(rawSD)
+``` 
+
+### Varialbes related with questions
+We have to choose some variables for solving two questions
+- Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+- Across the United States, which types of events have the greatest economic consequences?
+
+Base variables : BGN_DATE, STATE, EVTYPE(event type)
+Variables related with population health : FATALITIES, INJURIES
+Variables related with economic : PROPDMG(property dmage), PROPDMGEXP(property dmage exponents), CROPDMG(crop), CROPDMBEXP
+
+```{r}
+newCol <- c("STATE", "BGN_DATE", "EVTYPE", "PROPDMGEXP", "CROPDMGEXP", "FATALITIES", "INJURIES", "PROPDMG", "CROPDMG")
+newSD <- rawSD[, newCol]
+str(newSD)
+```
+
+### Convert the date and make new column DATE without time
+```{r}
+Sys.setlocale("LC_TIME","C")
+newSD$BGN_DATE <- as.Date(newSD$BGN_DATE, format = "%m/%d/%Y %H:%M:%S")
+newSD$DATE <- as.Date(newSD$BGN_DATE, format = "%m/%d/%Y")
+``` 
+
+### Check exponet value 
+```{r}
+unique(newSD$PROPDMGEXP)
+unique(newSD$CROPDMGEXP)
+```
+
+Calulating the exponent value
+- H or H for hundred 
+- K or k for thousand
+- M or m for million
+- B or b for billion
+```{r}
+exp <- c(0:9, "h", "H", "k", "K", "m", "M", "b", "B", "-", "+", "?", NA)
+real = c(10^(0:9), 10^2, 10^2, 10^3, 10^3, 10^6, 10^6, 10^9, 10^9, 1, 1, 1, 1)
+
+newSD$PROPDMGreal <- newSD$PROPDMG * real[match(newSD$PROPDMGEXP, exp)]
+newSD$CROPDMGreal <- newSD$CROPDMG * real[match(newSD$CROPDMGEXP, exp)]
+str(newSD)
+```
+
+### Check the value of event type
+```{r}
+unique(newSD$EVTYPE)[1:100]
+```
+
+Event type (EVTYPE) has 985 unique levles. But it is too dirty. There are many duplicated expresion. We have to clean up. First of all, classify event types
+- TORNADO, WIND, HAIL, RAIN, SNOW, STORM, FLOOD, HURRICANE, DUST, COLD, HOT, DRY, WET, SURF, FIRE
+
+```{r}
+newSD[grep("[Tt][Oo][Rr]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "TORNADO"
+newSD[grep("[Hh][Aa][Ii]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "HAIL"
+newSD[grep("[Tt][Ss][Uu]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "HAIL"
+newSD[grep("[Ww][Ii][Nn]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "WIND"
+newSD[grep("[Rr][Aa][Ii]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "RAIN"
+newSD[grep("[Ss][Hh][Oo]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "RAIN"
+newSD[grep("[Ss][Nn][Oo]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "SNOW"
+newSD[grep("[Aa][Vv][Aa][Ll]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "SNOW"
+newSD[grep("[Bb][Ll][Ii][Zz]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "SNOW"
+newSD[grep("[Ff][Ll][Oo]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "FLOOD"
+newSD[grep("[Ss][Tt][Oo]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "STORM"
+newSD[grep("[Tt][Yy][Pp]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "STORM"
+newSD[grep("[Hh][Uu][Rr]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "HURRICANE"
+newSD[grep("[Ff][Oo][Gg]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "FOG"
+newSD[grep("[Cc][Ll][Oo]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "CLOUD"
+newSD[grep("[Dd][Uu][Ss]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "DUST"
+newSD[grep("[Cc][Oo][Ll]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "COLD"
+newSD[grep("[Fr][Rr][Ee]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "COLD"
+newSD[grep("[Ii][Cc][Ee]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "COLD"
+newSD[grep("[Hh][Oo][Tt]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "HOT"
+newSD[grep("[Hh][Ee][Aa]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "HOT"
+newSD[grep("[Dd][Rr][Yy]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "DRY"
+newSD[grep("[Ww][Ee][Tt]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "WET"
+newSD[grep("[Ss][Uu][Rr]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "SURF"
+newSD[grep("[Ff][Ii][Rr]", newSD$EVTYPE, ignore.case = TRUE), c("EVTYPE")] <- "FIRE"
+
+
+```
+
+Subsetting event types from origin data (newSD) 
+```{r}
+eventType <- c("TORNADO","HAIL", "WIND", "RAIN", "SNOW", "FLOOD", "STORM", "HURRICANE", "FOG", "CLOUD", "DUST", "COLD", "HOT", "DRY", "WET", "SURF", "FIRE")
+
+new2SD <- subset(newSD, EVTYPE == eventType)
+```
+
+
+
+## Results  
+### Correlation between evet types and population health
+Calculate total FATALITIES and INJURIES per event types and show it in time period
+```{r fig.height:300, fig.width:800}
+new2SDFatal <- aggregate(FATALITIES ~ EVTYPE + DATE, new2SD, sum)
+new2SDInju <- aggregate(INJURIES ~ EVTYPE + DATE, new2SD, sum)
+
+### Population health chart
+library(ggplot2) 
+# FATALITIES : extension (without outlier)
+ggplot(new2SDFatal, aes(DATE, FATALITIES)) + geom_point(aes(color=EVTYPE), size =2) + coord_cartesian(ylim=c(0,40)) + labs(x= "YEAR", y="FATALITIES", title="FATALITIES per Event Type in USA")
+
+# INJURIES : extension (without outlier)
+ggplot(new2SDInju, aes(DATE, INJURIES)) + geom_point(aes(color=EVTYPE), size =2) + coord_cartesian(ylim=c(0,100)) + labs(x= "YEAR", y="INJURIES", title="INJURIES per Event Type in USA")
+```
+The TORNADO is the most hamful to population health. 
+
+
+### Correlation between evet types and economic consequences
+```{r fig.height:300, fi.width:600}
+new2SDProp <- aggregate(PROPDMGreal ~ EVTYPE, new2SD, sum)
+new2SDCrop <- aggregate(CROPDMGreal ~ EVTYPE, new2SD, sum)
+
+### Economic damage chart
+# Property damage 
+ggplot(new2SDProp, aes(EVTYPE, PROPDMGreal)) + geom_bar(stat="identity") + labs(x= "Event Type", y="Property Damage(USA)", title="Property Damagein USA")
+
+# Crop damage 
+ggplot(new2SDCrop, aes(EVTYPE, CROPDMGreal)) + geom_bar(stat="identity") + labs(x= "Event Type", y="Crop Damage(USD)", title="Crop Damage in USA")
+
+```
+
+
+
+
+
+
