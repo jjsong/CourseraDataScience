@@ -135,7 +135,7 @@ ggplot(new2SDInju, aes(DATE, INJURIES)) + geom_point(aes(color=EVTYPE), size =2)
 The TORNADO is the most hamful to population health. 
 
 
-### Correlation between evet types and economic consequences
+### Correlation between event types and economic consequences
 ```{r fig.height:300, fi.width:600}
 new2SDProp <- aggregate(PROPDMGreal ~ EVTYPE, new2SD, sum)
 new2SDCrop <- aggregate(CROPDMGreal ~ EVTYPE, new2SD, sum)
@@ -148,7 +148,7 @@ ggplot(new2SDProp, aes(EVTYPE, PROPDMGreal)) + geom_bar(stat="identity") + labs(
 ggplot(new2SDCrop, aes(EVTYPE, CROPDMGreal)) + geom_bar(stat="identity") + labs(x= "Event Type", y="Crop Damage(USD)", title="Crop Damage in USA")
 
 ```
-
+The FLOOD is the most hamful to crop damage, but the TORNADO is the most hamful to economic consequences in total. 
 
 
 
