@@ -1,0 +1,153 @@
+---
+title: "Automatic vs. Manual transmission for better MPG"
+author: "Junho Song"
+date: "22 July, 2014"
+output:
+  word_document: default
+  pdf_document:
+    number_sections: yes
+    toc: yes
+  html_document:
+    number_sections: yes
+    toc: yes
+---
+<br><br><br><br><br>
+
+
+# Executive Summary
+<br>
+
+The MPG(miles per gallon) of vehicle is affected by many factors like cylinders, weight, gears, hourse power, automatic trasmission etc. In this study, the data set extracted from the 1974 Motor Trend US magazine is used, and I focused on the difference of MPG between automatic and manual transmission. 
+
+Main questions are below.
+
+- "Is an automatic or manual transmission better for MPG"
+- "Quantify the MPG difference between automatic and manual transmissions"
+
+<br><br><br>
+
+
+
+
+# Data Processing
+<br>
+
+## Load and Check the Data Set 
+Check the data set for processing. 
+And for better understanding as a whole, we can see the whole relationship with each variables at fig1(see the appendix). 
+
+```{r cache=TRUE}
+library(datasets)
+data(mtcars)
+#str(mtcars)
+```
+<br>
+
+## Data Processing and Exploratory Data Analysis
+We can see the 'cyl', 'vs', 'am', 'gear' and 'carb' which are numerical variables. But we can use it as factors for analysis about relationships with mpg. And check the boxplot as realation between mpg and other variables at fig2(see appendix). 
+<br>
+
+```{r message=FALSE}
+library(dplyr)
+```
+
+```{r}
+mpgMtcars <- select(mtcars, mpg, cyl, vs, am, gear, carb)  
+mpgMtcars$cyl <- as.factor(mpgMtcars$cyl)
+mpgMtcars$vs <- as.factor(mpgMtcars$vs)
+mpgMtcars$am <- as.factor(mpgMtcars$am)
+mpgMtcars$gear <- as.factor(mpgMtcars$gear)
+mpgMtcars$carb <- as.factor(mpgMtcars$carb)
+#str(mpgMtcars)
+```
+
+<br><br><br>
+
+
+
+
+# Inference
+
+We will focus on the variable 'am', automatic transmission vs. manual transmission (factor '0' is automatic, '1' is manual).   
+<br>
+
+## Fist question
+> "Is an automatic or manual transmission better for MPG"
+
+```{r}
+mpgAmMtcars <- select(mtcars, mpg, am)
+mpgAmMtcars$am <- factor(mpgAmMtcars$am, labels = c("Automatic", "Manual"))
+
+# mpg vs. Automatic transmittion 
+summary(mpgAutoMtcars <- subset(mpgAmMtcars, am == "Automatic"))
+
+# mpg vs. Manual transmittion 
+summary(mpgManuMtcars <- subset(mpgAmMtcars, am == "Manual"))
+```
+
+According to the above result, the mean of mpg in manual is better ; 17.15 (automatic) vs. 24.39 (manual). 
+Therefore, we can say manual transmission for mpg is better, and check it at fig3 (see appendix).
+
+Furthermore, we can check the difference as t-test. <br>
+- H0 : no difference between automatic transmission in terms of mpg <br>
+- H1 : difference between automatic transmission in terms of mpg
+
+```{r}
+mpgAmTtest <- t.test(x = mpgAutoMtcars$mpg, 
+                     y = mpgManuMtcars$mpg, paired = FALSE)
+mpgAmTtest$p.value
+```
+
+The p-value is 0.00137. Considering the critical value 0.05, the null hypothesis (H0) is should be rejected and we can say there is a statistical significant mpg difference between automatic and manual transmission. 
+
+<br><br><br>
+
+# Model Selection 
+## Second question 
+> "Quantify the MPG difference between automatic and manual transmissions" 
+
+```{r}
+fitMtcars <- lm(mpg ~ as.integer(am), data = mpgMtcars )
+summary(fitMtcars)
+```
+
+According to the summary, we can check the p-value 0.000285, suggests that the difference can be explained by this model statistially. And in terms of mpg, manual transmission has better efficiency, which increased by 7.245. 
+
+<br><br><br>
+
+
+
+
+
+# Appendix 
+
+fig1. Relationships among variables
+```{r }
+require(stats);require(graphics) 
+pairs(mtcars, panel=panel.smooth, main="Relationships among variables", col = 3 + (mtcars$mpg >20))
+```
+
+
+fig1. mpg and other variables
+```{r}
+## boxplot for checking difference
+par(mfrow = c(1,5))
+boxplot(mpg ~ cyl, data = mpgMtcars, ylab = "mpg", xlab = "cyl")
+boxplot(mpg ~ vs, data = mpgMtcars, ylab = "mpg", xlab = "vs")
+boxplot(mpg ~ am, data = mpgMtcars, ylab = "mpg", xlab = "am")
+boxplot(mpg ~ gear, data = mpgMtcars, ylab = "mpg", xlab = "gear")
+boxplot(mpg ~ carb, data = mpgMtcars, ylab = "mpg", xlab = "carb")
+```
+
+
+fig 2. mpg vs transmission (automatic vs. manual)
+```{r}
+mpgAmMtcars <- select(mtcars, mpg, am)
+mpgAmMtcars$am <- factor(mpgAmMtcars$am, labels = c("Automatic", "Manual"))
+par(mfrow = c(1,1))
+boxplot(mpg ~ am, data = mpgAmMtcars, ylab = "mpg", xlab = "am")
+```
+
+
+
+
