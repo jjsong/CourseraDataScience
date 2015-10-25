@@ -1,0 +1,178 @@
+---
+title: "Human Activity Recognition - practical machine learning"
+author: "Junho Song"
+date: "26 Oct, 2015"
+output:
+  html_document:
+    number_sections: yes
+    toc: yes
+  pdf_document:
+    number_sections: yes
+    toc: yes
+  word_document: default
+---
+<br><br><br><br><br>
+
+
+# Background  
+In this project, as prctical machin learning course of cousera we are going to anlyize HAR(human activity recognition) data. The folowing is overview of data sets.  
+
+=====
+ In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: <http://groupware.les.inf.puc-rio.br/har> (see the section on the Weight Lifting Exercise Dataset).
+ 
+Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions:
+1)exactly according to the specification (Class A),
+2)throwing the elbows to the front (Class B),
+3)lifting the dumbbell only halfway (Class C),
+4)lowering the dumbbell only halfway (Class D) and
+5)throwing the hips to the front (Class E).
+=====
+
+# Data PreProcessing 
+
+Set data folder
+```{r}
+filePath <- "/Users/uxLab/Box Sync/PROJECTS/MOOC/Johns Hopkins - Data Science/8 Practical Machine Learning/project/data/"
+```
+
+Check the original data set
+```{r}
+fileNameTraining <- "pml-training.csv"
+fileNameTesting <- "pml-testing.csv"
+
+fileUrlTraining <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+fileUrlTesting <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+```
+
+Load data sets
+```{r}
+fileTraining <- paste0(filePath, fileNameTraining)
+fileTesting <- paste0(filePath, fileNameTesting)
+
+if (!file.exists(fileTraining)) {
+  download.file(fileUrlTraining, destfile = fileTraining, method ="curl")
+  dateDownloaded <- date()
+}
+
+if (!file.exists(fileTesting)) {
+  download.file(fileUrlTesting, destfile = fileTesting, method ="curl")
+  dateDownloaded <- date()
+}
+```
+
+Read each data
+```{r}
+pmlTraining <- read.csv(fileTraining)
+pmlTesting <- read.csv(fileTesting)
+```
+
+
+# Exploratory Data Analysis
+
+Check out the data
+```{r, echo=FALSE}
+names(pmlTraining)
+names(pmlTesting)
+```
+
+We are going to predict the factor in the 160th column ‘classe’, labelled A, B, C, C, E.
+```{r}
+pmlTraining[,c("classe")][1:10]    #check 160th cloumn name
+pmlTesting[,c("problem_id")][1:20]  #check 160th column name
+#summary(pmlTraining)
+#summary(pmlTraining)
+```
+
+We can also check it with compareGroups function
+```{r, echo=FALSE}
+library(compareGroups)
+comGroup <- compareGroups(classe ~ . , data=pmlTraining)
+createTable(comGroup)
+```
+
+Looking at the data we can see it contains many blank, NAs and '#DIV/0!' value.
+```{r}
+# Re-read data
+pmlTraining <- read.csv(fileTraining, header = TRUE, na.string = c("", 'NA', "#DIV/0!"))
+pmlTesting <- read.csv(fileTesting,  header = TRUE, na.string = c("", 'NA', "#DIV/0!"))
+```
+
+Select predictors, not having NA value. And remove first 7 columns bacuase it is not information from sensors 
+```{r}
+predictors <- colnames(pmlTraining)
+predictors <- predictors[colSums(is.na(pmlTraining)) == 0]
+
+predictors <- predictors[-(1:7)]
+```
+
+Make the final data set for analyizing
+```{r}
+pmlTraining <- pmlTraining[, predictors]
+```
+
+
+# Cross validation 
+Split the pmlTraining data into two data sets : training and testing. We will allocaate 75% for taining and 25% for validating. 
+```{r}
+library(caret)
+set.seed(2585)
+inTrain<-createDataPartition(pmlTraining$classe, p=0.75, list=FALSE)
+training<-pmlTraining[inTrain,]
+testing<-pmlTraining[-inTrain,]
+```
+
+
+
+# Building models
+## Classification tree model
+```{r}
+library(rpart)
+modFitRpart <- train(classe ~ ., method="rpart", data=training)
+predictRpart <- predict(modFitRpart, testing)
+conMatRpart <- confusionMatrix(testing$classe, predictRpart)
+   
+conMatRpart
+```
+As shown above, the acccurccy of the classification tree model is vary low.
+
+
+## Ramdom forest
+```{r}
+library(randomForest)
+modFitRF <- train(classe ~.,method="rf", data=training,
+              trControl = trainControl(method="cv"),
+              number=3)
+predictRF <- predict(modFitRF, testing)
+conMatRF <- confusionMatrix(testing$classe, predictRF)
+conMatRF
+```
+
+
+# Conclusion
+From the above two confustion matrix, we can see randomForest performance is much better. 
+
+# Project submission
+```{r}
+#Apply models to the 20 test cases 
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+answers <- predict(modFitRF, pmlTesting)
+
+pml_write_files(answers)
+```
+
+
+
+
+# Reference 
+[1] Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+
+[2] Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. Wearable Computing: Accelerometers' Data Classification of Body Postures and Movements. Proceedings of 21st Brazilian Symposium on Artificial Intelligence. Advances in Artificial Intelligence - SBIA 2012. In: Lecture Notes in Computer Science. , pp. 52-61. Curitiba, PR: Springer Berlin / Heidelberg, 2012. ISBN 978-3-642-34458-9. DOI: 10.1007/978-3-642-34459-6_6. 
+
+
