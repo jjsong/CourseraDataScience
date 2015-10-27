@@ -70,9 +70,9 @@ pmlTesting <- read.csv(fileTesting)
 # Exploratory Data Analysis
 
 Check out the data
-```{r, echo=FALSE}
-names(pmlTraining)
-names(pmlTesting)
+```{r}
+#names(pmlTraining)
+#names(pmlTesting)
 ```
 
 We are going to predict the factor in the 160th column ‘classe’, labelled A, B, C, C, E.
@@ -84,7 +84,7 @@ pmlTesting[,c("problem_id")][1:20]  #check 160th column name
 ```
 
 We can also check it with compareGroups function
-```{r, echo=FALSE}
+```{r}
 library(compareGroups)
 comGroup <- compareGroups(classe ~ . , data=pmlTraining)
 createTable(comGroup)
@@ -103,6 +103,7 @@ predictors <- colnames(pmlTraining)
 predictors <- predictors[colSums(is.na(pmlTraining)) == 0]
 
 predictors <- predictors[-(1:7)]
+predictors
 ```
 
 Make the final data set for analyizing
@@ -137,19 +138,46 @@ As shown above, the acccurccy of the classification tree model is vary low.
 
 
 ## Ramdom forest
+we will use random forest model with 53 predictors(varialbes) first 
 ```{r}
 library(randomForest)
-modFitRF <- train(classe ~.,method="rf", data=training,
-              trControl = trainControl(method="cv"),
-              number=3)
+set.seed(2585)
+#modFitRF <- train(classe ~.,method="rf", data=training,
+#              trControl = trainControl(method="cv"),
+#              number=3)
+modFitRF <- randomForest(classe ~., data = training, importance = TRUE)
+
 predictRF <- predict(modFitRF, testing)
 conMatRF <- confusionMatrix(testing$classe, predictRF)
 conMatRF
 ```
 
+## Minmizing predictors
+```{r}
+importanceRF <- importance(modFitRF, type=1) 
+varImpPlot(modFitRF)
+```
+To minize predictors, we will build a random forest model 2 again with 7 most accurate predictors : "yaw_belt", "roll_belt", "pitch_belt", "magnet_dumbbell_z", "magnet_dumbbell_y", "pitch_forearm, and "magnet_forearm_z"
 
-# Conclusion
-From the above two confustion matrix, we can see randomForest performance is much better. 
+## Random forest 2
+We will use random forest model with 7 predictorors
+```{r}
+training2 <- subset(training, select = c("yaw_belt", "roll_belt", "pitch_belt", "magnet_dumbbell_z", "magnet_dumbbell_y", "pitch_forearm", "magnet_forearm_z", "classe"))
+set.seed(2585)
+modFitRF2 <- randomForest(classe ~., data = training2, importance = TRUE)
+predictRF2 <- predict(modFitRF2, testing)
+conMatRF2 <- confusionMatrix(testing$classe, predictRF2)
+conMatRF2
+```
+
+
+
+## Analasis and conclusion 
+The accuracy of classification model is 0.4953. It is very low, which leads us to commit many misclassifications. So we will not use it. 
+The sample error of random frest model with 53 predictors is around 0.31% (1-0.9969). But there are many predictors. It might have a room for overfitting problem. And the sample error of random forest model wkth 7 predictores is around 1.34%(1-0.9866). It's a little bit higher error than the first random forest model. But it will be better for prediction(not overfitting) and analysis resource because of very small difference.  
+
+Therefore we will use a random forest model with 7 predictores. 
+
 
 # Project submission
 ```{r}
